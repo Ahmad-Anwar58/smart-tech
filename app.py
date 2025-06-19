@@ -26,14 +26,11 @@ st.markdown(
     f"""
     <style>
     .stApp {{
-        background-image: url("data:image/jpg;base64,{img_base64}");
+        background: url("data:image/jpg;base64,{img_base64}") no-repeat center center fixed;
         background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
     }}
-    .main .block-container {{
-        background-color: rgba(255, 255, 255, 0.88);
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.92);
         padding: 2rem;
         border-radius: 10px;
     }}
