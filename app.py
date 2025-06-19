@@ -32,6 +32,17 @@ for col in categorical_cols:
     df[col] = le.fit_transform(df[col])
     label_encoders[col] = le
 
+# Remove non-numeric columns for default values and model training
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+numeric_cols = [col for col in numeric_cols if col != 'yield_kg_per_hectare']
+
+# Shared model data
+default_values = df[numeric_cols].mean().to_dict()
+X = df[numeric_cols]
+y = df['yield_kg_per_hectare']
+model = RandomForestRegressor(n_estimators=100, random_state=42)
+model.fit(X, y)
+
 # Sidebar Navigation
 st.sidebar.title("🌱 Smart AgriTech")
 section = st.sidebar.radio("📂 Choose Module", [
@@ -41,13 +52,6 @@ section = st.sidebar.radio("📂 Choose Module", [
     "🧪 Pesticide Estimator",
     "💰 ROI Calculator"
 ])
-
-# Shared model data
-default_values = df.drop(columns=['yield_kg_per_hectare']).select_dtypes(include=[np.number]).mean().to_dict()
-X = df.drop(columns=['yield_kg_per_hectare'])
-y = df['yield_kg_per_hectare']
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X, y)
 
 # 1. Dashboard
 if section == "📈 Dashboard":
