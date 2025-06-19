@@ -144,7 +144,7 @@ elif section == "🧪 Pesticide Estimator":
     irri = st.selectbox("Irrigation Type", label_encoders['irrigation_type'].classes_)
     days = st.number_input("Total Days of Crop", min_value=1, value=90)
 
-    df_pest = pd.read_csv("Smart_Farming_Crop_Yield_2024.csv")
+    df_pest = pd.read_csv("Data.csv")
     df_pest['irrigation_type'] = df_pest['irrigation_type'].replace("None", "Drip")
     df_pest = df_pest[['crop_type', 'fertilizer_type', 'irrigation_type', 'total_days', 'pesticide_usage_ml']].copy()
     df_pest['pesticide_usage_ml'] = pd.to_numeric(df_pest['pesticide_usage_ml'], errors='coerce') * 20
