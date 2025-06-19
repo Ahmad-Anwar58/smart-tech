@@ -22,28 +22,25 @@ def get_base64_image(image_path):
 img_path = "background.jpg"  # Ensure this file exists in the same directory
 img_base64 = get_base64_image(img_path)
 
-# Inject working background image CSS (FINAL FIX)
 st.markdown(
     f"""
     <style>
-    html, body, .stApp {{
-        height: 100%;
+    .stApp {{
         background-image: url("data:image/jpg;base64,{img_base64}");
         background-size: cover;
+        background-repeat: no-repeat;
         background-attachment: fixed;
         background-position: center;
     }}
-    
-    .stApp > div:first-child {{
-        background-color: rgba(255, 255, 255, 0.85);
+    .main .block-container {{
+        background-color: rgba(255, 255, 255, 0.88);
         padding: 2rem;
-        border-radius: 12px;
+        border-radius: 10px;
     }}
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 # Load data
 @st.cache_data
