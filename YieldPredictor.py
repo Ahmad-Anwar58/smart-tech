@@ -1,54 +1,139 @@
+# smart_agriculture_app.py
+
 import streamlit as st
 import pandas as pd
+import numpy as np
+import base64
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from datetime import datetime
+import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
+from pathlib import Path
 
-# === Load Dataset ===
-file_path = r"Data.csv"
-df = pd.read_csv(file_path)
+# Set modern page config
+st.set_page_config(page_title="CropIQ – Intelligent Crop Yield Optimizer", layout="wide")
 
-# === Assign irrigation intervals based on typical Pakistani farming ===
-irrigation_intervals = {
-    'Wheat': 28,
-    'Sugarcane': 25,
-    'Maize': 22,
-    'Cotton': 24,
-    'Rice': 10
-}
-df['irrigation_interval_days'] = df['crop_type'].map(irrigation_intervals)
-df = df.dropna(subset=['irrigation_interval_days'])
+# Load and convert background image to Base64
+@st.cache_data
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
 
-# === Encode crop type ===
-le_crop = LabelEncoder()
-df['crop_type_encoded'] = le_crop.fit_transform(df['crop_type'])
+img_path = "background.jpg"
+img_base64 = get_base64_image(img_path)
 
-# === Select features and target ===
-features = ['crop_type_encoded', 'soil_moisture_%', 'temperature_C', 'rainfall_mm']
-X = df[features]
-y = df['irrigation_interval_days']
+# Custom CSS with base64 background
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/jpg;base64,{img_base64}");
+        background-size: cover;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+        background-position: center;
+    }}
+    .custom-section {{
+        background-color: rgba(255, 255, 255, 0.88);
+        padding: 2rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+    }}
+    .center-title {{
+        text-align: center;
+        font-size: 2.5rem;
+        color: #1e5631;
+        font-weight: bold;
+        margin-top: 2rem;
+    }}
+    .subheading-text {{
+        font-size: 1.2rem;
+        color: #222;
+        text-align: center;
+        margin-bottom: 2rem;
+    }}
+    .nav-bar {{
+        background-color: #1e5631;
+        color: white;
+        padding: 1rem;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        border-radius: 0.5rem;
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# === Train Model ===
+# Load data
+@st.cache_data
+def load_data():
+    df = pd.read_csv("Data.csv")
+    df['sowing_date'] = pd.to_datetime(df['sowing_date'])
+    df['harvest_date'] = pd.to_datetime(df['harvest_date'])
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['Date'] = df['timestamp'].dt.date
+    return df
+
+df = load_data()
+
+# Encode categoricals
+label_encoders = {}
+categorical_cols = ['crop_type', 'irrigation_type', 'fertilizer_type', 'crop_disease_status']
+for col in categorical_cols:
+    le = LabelEncoder()
+    df[col] = le.fit_transform(df[col])
+    label_encoders[col] = le
+
+# Remove non-numeric columns for default values and model training
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+numeric_cols = [col for col in numeric_cols if col != 'yield_kg_per_hectare']
+
+# Shared model data
+default_values = df[numeric_cols].mean(numeric_only=True).to_dict()
+X = df[numeric_cols]
+y = df['yield_kg_per_hectare']
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X, y)
 
-# === Streamlit App ===
-st.title("🌾 Smart Farming - Irrigation Interval Predictor")
+# ================= Welcome Page ===================
+st.markdown("""
+<div class="nav-bar">
+  <a style='text-decoration: none; color: white;'>🌾 Yield Predictor</a>
+  <a style='text-decoration: none; color: white;'>💧 Irrigation Estimator</a>
+  <a style='text-decoration: none; color: white;'>🧪 Pesticide Forecaster</a>
+  <a style='text-decoration: none; color: white;'>📈 ROI & Dashboard</a>
+</div>
+<div class="center-title">🌾 CropIQ – Intelligent Crop Yield Optimizer</div>
+<div class="subheading-text">
+  A smart analytics and AI-powered platform that helps Pakistani farmers:
+  <ul>
+    <li>Predict crop yield</li>
+    <li>Optimize irrigation, fertilizer, pesticide</li>
+    <li>Get clear cost-saving recommendations</li>
+    <li>Cluster plots by performance</li>
+    <li>Receive personalized insights & PDF reports</li>
+  </ul>
+</div>
+""", unsafe_allow_html=True)
 
-# User Inputs
-crop_input = st.selectbox("Select Crop Type:", le_crop.classes_)
-soil_moisture = st.slider("Current Soil Moisture (%)", min_value=0, max_value=100, value=30)
-temperature = st.slider("Current Temperature (°C)", min_value=-10, max_value=50, value=25)
-rainfall = st.slider("Recent Rainfall (mm)", min_value=0, max_value=200, value=10)
+# === Import predictors and ROI modules ===
+# Yield Predictor
+exec(open("yield_predictor.py").read())
 
-# Predict Button
-if st.button("Predict Irrigation Interval"):
-    crop_encoded = le_crop.transform([crop_input])[0]
-    input_df = pd.DataFrame([{
-        'crop_type_encoded': crop_encoded,
-        'soil_moisture_%': soil_moisture,
-        'temperature_C': temperature,
-        'rainfall_mm': rainfall
-    }])
-    prediction = model.predict(input_df)[0]
-    st.success(f"💧 Predicted irrigation should be done every **{prediction:.1f} days** based on current conditions.")
+# Irrigation Forecast
+exec(open("irrigation_forecast.py").read())
 
+# Pesticide Estimator
+exec(open("pesticide_estimator.py").read())
+
+# ROI Calculator
+exec(open("roi_calculator.py").read())
+
+# Dashboard
+exec(open("dashboard_charts.py").read())
