@@ -8,30 +8,39 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from datetime import datetime
 import plotly.express as px
+import base64
 
-# --- Set page configuration ---
+# Set modern page config
 st.set_page_config(page_title="CropIQ – Intelligent Crop Yield Optimizer", layout="wide")
 
+# === Inject Background Image ===
+@st.cache_data
+def get_base64_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
+
+img_path = "background.jpg"  # Ensure this file exists in the same directory
+img_base64 = get_base64_image(img_path)
+
 st.markdown(
-    """
+    f"""
     <style>
-    .main {
-        background-image: url("background.jpg");
+    .stApp {{
+        background-image: url("data:image/jpg;base64,{img_base64}");
         background-size: cover;
         background-repeat: no-repeat;
         background-attachment: fixed;
         background-position: center;
-    }
-    .block-container {
+    }}
+    .main .block-container {{
         background-color: rgba(255, 255, 255, 0.88);
         padding: 2rem;
         border-radius: 10px;
-    }
+    }}
     </style>
     """,
     unsafe_allow_html=True
 )
-
 
 # Load data
 @st.cache_data
