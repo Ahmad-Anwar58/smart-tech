@@ -1,3 +1,5 @@
+# smart_agriculture_app.py
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -11,55 +13,17 @@ import base64
 # Set modern page config
 st.set_page_config(page_title="CropIQ – Intelligent Crop Yield Optimizer", layout="wide")
 
-# Load and convert background image to Base64
-@st.cache_data
-def get_base64_image(image_path):
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
-
-img_path = "background.jpg"  # Ensure this file exists in the same directory
-img_base64 = get_base64_image(img_path)
-
-# Custom CSS with base64 background
+# Custom CSS background image only (no base64 method)
 st.markdown(
-    f"""
+    """
     <style>
-    .stApp {{
-        background-image: url("data:image/jpg;base64,{img_base64}");
+    .stApp {
+        background-image: url('background.jpg');
         background-size: cover;
         background-attachment: fixed;
         background-repeat: no-repeat;
         background-position: center;
-    }}
-    .custom-section {{
-        background-color: rgba(255, 255, 255, 0.88);
-        padding: 2rem;
-        border-radius: 10px;
-        margin-top: 1rem;
-    }}
-    .center-title {{
-        text-align: center;
-        font-size: 2.5rem;
-        color: #1e5631;
-        font-weight: bold;
-        margin-top: 2rem;
-    }}
-    .subheading-text {{
-        font-size: 1.2rem;
-        color: #222;
-        text-align: center;
-        margin-bottom: 2rem;
-    }}
-    .nav-bar {{
-        background-color: #1e5631;
-        color: white;
-        padding: 1rem;
-        font-size: 1.1rem;
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        border-radius: 0.5rem;
-    }}
+    }
     </style>
     """,
     unsafe_allow_html=True
