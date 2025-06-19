@@ -4,7 +4,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 
 # === Load Dataset ===
-file_path = r"D:\BS Business Analytics\FYP\FYP2\Smart_Farming_Crop_Yield_2024.csv"
+file_path = r"Data.csv"
 df = pd.read_csv(file_path)
 
 # === Assign irrigation intervals based on typical Pakistani farming ===
