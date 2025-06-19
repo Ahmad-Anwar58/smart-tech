@@ -14,7 +14,6 @@ st.set_page_config(page_title="Smart Agriculture Dashboard", layout="wide")
 
 # Load data
 @st.cache_data
-
 def load_data():
     df = pd.read_csv("Data.csv")
     df['sowing_date'] = pd.to_datetime(df['sowing_date'])
@@ -43,18 +42,59 @@ y = df['yield_kg_per_hectare']
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X, y)
 
-# Sidebar Navigation
-st.sidebar.title("🌱 Smart AgriTech")
-section = st.sidebar.radio("📂 Choose Module", [
-    "📈 Dashboard",
-    "🌾 Yield Predictor",
-    "💧 Irrigation Forecast",
-    "🧪 Pesticide Estimator",
-    "💰 ROI Calculator"
-])
+# Custom CSS for background and toolbar
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-image: url('https://images.unsplash.com/photo-1585881903788-225978740745');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .toolbar {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 10px;
+        display: flex;
+        justify-content: space-around;
+        z-index: 1000;
+    }
+    .toolbar button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        background-color: #4CAF50;
+        color: white;
+        cursor: pointer;
+    }
+    .toolbar button:hover {
+        background-color: #45a049;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Toolbar Navigation
+st.markdown(
+    """
+    <div class="toolbar">
+        <button onclick="window.location.href='#dashboard'">📈 Dashboard</button>
+        <button onclick="window.location.href='#yield-predictor'">🌾 Yield Predictor</button>
+        <button onclick="window.location.href='#irrigation-forecast'">💧 Irrigation Forecast</button>
+        <button onclick="window.location.href='#pesticide-estimator'">🧪 Pesticide Estimator</button>
+        <button onclick="window.location.href='#roi-calculator'">💰 ROI Calculator</button>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # 1. Dashboard
-if section == "📈 Dashboard":
+if st.session_state.get("section") == "Dashboard" or not st.session_state.get("section"):
     st.title("📊 Smart Agriculture Dashboard")
     st.subheader("Interactive Crop Data Overview")
 
@@ -80,7 +120,7 @@ if section == "📈 Dashboard":
         st.plotly_chart(fig4, use_container_width=True)
 
 # 2. Yield Predictor
-elif section == "🌾 Yield Predictor":
+elif st.session_state.get("section") == "Yield Predictor":
     st.title("🌾 Crop Yield Predictor")
 
     crop_type = st.selectbox("Crop Type", label_encoders['crop_type'].classes_)
@@ -102,7 +142,7 @@ elif section == "🌾 Yield Predictor":
     st.success(f"Predicted Yield: {maunds:.2f} maunds/acre")
 
 # 3. Irrigation Forecast
-elif section == "💧 Irrigation Forecast":
+elif st.session_state.get("section") == "Irrigation Forecast":
     st.title("💧 Irrigation Forecasting")
 
     irrigation_intervals = {
@@ -137,7 +177,7 @@ elif section == "💧 Irrigation Forecast":
     st.info(f"Recommended irrigation every {result:.1f} days.")
 
 # 4. Pesticide Estimator
-elif section == "🧪 Pesticide Estimator":
+elif st.session_state.get("section") == "Pesticide Estimator":
     st.title("🧪 Pesticide Usage Estimator")
     pest_df = df[['crop_type', 'fertilizer_type', 'irrigation_type', 'total_days', 'pesticide_usage_ml']].copy()
     pest_df['pesticide_usage_ml'] = pd.to_numeric(pest_df['pesticide_usage_ml'], errors='coerce') * 20
@@ -150,57 +190,4 @@ elif section == "🧪 Pesticide Estimator":
     crop = st.selectbox("Crop", label_encoders['crop_type'].classes_)
     fert = st.selectbox("Fertilizer", label_encoders['fertilizer_type'].classes_)
     irri = st.selectbox("Irrigation", label_encoders['irrigation_type'].classes_)
-    days = st.number_input("Total Crop Duration", min_value=1, value=90)
-
-    input_df = pd.DataFrame([{
-        'crop_type': label_encoders['crop_type'].transform([crop])[0],
-        'fertilizer_type': label_encoders['fertilizer_type'].transform([fert])[0],
-        'irrigation_type': label_encoders['irrigation_type'].transform([irri])[0],
-        'total_days': days
-    }])
-
-    pred_ml = model_p.predict(input_df)[0]
-    st.success(f"Estimated pesticide required: {pred_ml:.2f} ml")
-
-# 5. ROI Calculator
-elif section == "💰 ROI Calculator":
-    st.title("💰 ROI & Profit Estimator")
-
-    crop = st.selectbox("Crop", label_encoders['crop_type'].classes_)
-    fert = st.selectbox("Fertilizer", label_encoders['fertilizer_type'].classes_)
-    irri = st.selectbox("Irrigation", label_encoders['irrigation_type'].classes_)
-    end_date = st.date_input("Expected Harvest Date", datetime.today())
-
-    days = max(1, (end_date - datetime.today().date()).days)
-    input_vals = default_values.copy()
-    input_vals.update({
-        'crop_type': label_encoders['crop_type'].transform([crop])[0],
-        'fertilizer_type': label_encoders['fertilizer_type'].transform([fert])[0],
-        'irrigation_type': label_encoders['irrigation_type'].transform([irri])[0],
-        'total_days': days
-    })
-
-    pred_yield = model.predict(pd.DataFrame([input_vals]))[0]
-    maunds = (pred_yield / 40) / 2.47105
-
-    price_map = {'Wheat': 2000, 'Rice': 3600, 'Cotton': 8500, 'Maize': 1800, 'Sugarcane': 500}
-    price = price_map.get(crop.capitalize(), 0)
-    revenue = maunds * price
-
-    cost = st.number_input("Total Cost (PKR/acre)", value=50000.0)
-    invest = st.number_input("Investment (PKR/acre)", value=60000.0)
-
-    profit = revenue - cost
-    roi = (profit / invest) * 100 if invest else 0
-
-    st.metric("Yield (maunds/acre)", f"{maunds:.2f}")
-    st.metric("Revenue (PKR/acre)", f"{revenue:,.0f}")
-    st.metric("Profit", f"{profit:,.0f}")
-    st.metric("ROI", f"{roi:.2f}%")
-
-    acres = st.slider("Scale (Acres)", 1, 100, 5)
-    st.write("---")
-    st.write(f"**Total Revenue:** PKR {revenue * acres:,.0f}")
-    st.write(f"**Total Cost:** PKR {cost * acres:,.0f}")
-    st.write(f"**Total Investment:** PKR {invest * acres:,.0f}")
-    st.write(f"**Total Profit:** PKR {profit * acres:,.0f}")
+   
