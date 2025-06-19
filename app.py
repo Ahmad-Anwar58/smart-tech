@@ -47,7 +47,7 @@ st.markdown(
     """
     <style>
     .stApp {
-        background-image: url('https://images.unsplash.com/photo-1585881903788-225978740745');
+        background-image: url('background.jpeg');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -190,4 +190,7 @@ elif st.session_state.get("section") == "Pesticide Estimator":
     crop = st.selectbox("Crop", label_encoders['crop_type'].classes_)
     fert = st.selectbox("Fertilizer", label_encoders['fertilizer_type'].classes_)
     irri = st.selectbox("Irrigation", label_encoders['irrigation_type'].classes_)
-   
+    days = st.number_input("Total Crop Duration", min_value=1, value=90)
+
+    input_df = pd.DataFrame([{
+        '
