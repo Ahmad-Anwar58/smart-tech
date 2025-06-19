@@ -8,26 +8,31 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from datetime import datetime
 import plotly.express as px
-import base64
 
-# Set modern page config
+# --- Set page configuration ---
 st.set_page_config(page_title="CropIQ – Intelligent Crop Yield Optimizer", layout="wide")
 
-# Custom CSS background image only (no base64 method)
+# --- Inject CSS for background image ---
 st.markdown(
     """
     <style>
     .stApp {
-        background-image: url('background.jpg');
+        background: url("background.jpg");
         background-size: cover;
-        background-attachment: fixed;
         background-repeat: no-repeat;
+        background-attachment: fixed;
         background-position: center;
+    }
+    .block-container {
+        background-color: rgba(255, 255, 255, 0.88);
+        padding: 2rem;
+        border-radius: 10px;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
+
 
 # Load data
 @st.cache_data
