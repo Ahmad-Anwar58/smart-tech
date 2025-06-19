@@ -9,10 +9,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from datetime import datetime
 import plotly.express as px
+import matplotlib.pyplot as plt
+import seaborn as sns
 from pathlib import Path
 
 # Set modern page config
-st.set_page_config(page_title="Smart Agriculture Dashboard", layout="wide")
+st.set_page_config(page_title="CropIQ – Intelligent Crop Yield Optimizer", layout="wide")
 
 # Load and convert background image to Base64
 @st.cache_data
@@ -47,6 +49,22 @@ st.markdown(
         font-weight: bold;
         margin-top: 2rem;
     }}
+    .subheading-text {{
+        font-size: 1.2rem;
+        color: #222;
+        text-align: center;
+        margin-bottom: 2rem;
+    }}
+    .nav-bar {{
+        background-color: #1e5631;
+        color: white;
+        padding: 1rem;
+        font-size: 1.1rem;
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        border-radius: 0.5rem;
+    }}
     </style>
     """,
     unsafe_allow_html=True
@@ -59,6 +77,7 @@ def load_data():
     df['sowing_date'] = pd.to_datetime(df['sowing_date'])
     df['harvest_date'] = pd.to_datetime(df['harvest_date'])
     df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['Date'] = df['timestamp'].dt.date
     return df
 
 df = load_data()
@@ -82,85 +101,153 @@ y = df['yield_kg_per_hectare']
 model = RandomForestRegressor(n_estimators=100, random_state=42)
 model.fit(X, y)
 
-# Home Banner and Predictors
+# ================= Welcome Page ===================
 st.markdown("""
-<div class="center-title">AGRICULTURE IS THE MOST HEALTHFUL</div>
+<div class="nav-bar">
+  <a style='text-decoration: none; color: white;'>🌾 Yield Predictor</a>
+  <a style='text-decoration: none; color: white;'>💧 Irrigation Estimator</a>
+  <a style='text-decoration: none; color: white;'>🧪 Pesticide Forecaster</a>
+  <a style='text-decoration: none; color: white;'>📈 ROI & Dashboard</a>
+</div>
+<div class="center-title">🌾 CropIQ – Intelligent Crop Yield Optimizer</div>
+<div class="subheading-text">
+  A smart analytics and AI-powered platform that helps Pakistani farmers:
+  <ul>
+    <li>Predict crop yield</li>
+    <li>Optimize irrigation, fertilizer, pesticide</li>
+    <li>Get clear cost-saving recommendations</li>
+    <li>Cluster plots by performance</li>
+    <li>Receive personalized insights & PDF reports</li>
+  </ul>
+</div>
 """, unsafe_allow_html=True)
 
-# Predictor Sections
-col1, col2, col3 = st.columns(3)
+# ================= Yield Predictor ===================
+st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
+st.subheader("🌾 AI Yield Predictor")
 
-with col1:
-    with st.container():
-        st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
-        st.subheader("🌾 Yield Predictor")
-        crop_type = st.selectbox("Crop Type", label_encoders['crop_type'].classes_, key="y_crop")
-        fert_type = st.selectbox("Fertilizer Type", label_encoders['fertilizer_type'].classes_, key="y_fert")
-        irri_type = st.selectbox("Irrigation Type", label_encoders['irrigation_type'].classes_, key="y_irri")
-        future_date = st.date_input("Expected Harvest Date", datetime.today(), key="y_date")
-        total_days = max(1, (future_date - datetime.today().date()).days)
-        input_data = default_values.copy()
-        input_data.update({
-            'crop_type': label_encoders['crop_type'].transform([crop_type])[0],
-            'fertilizer_type': label_encoders['fertilizer_type'].transform([fert_type])[0],
-            'irrigation_type': label_encoders['irrigation_type'].transform([irri_type])[0],
-            'total_days': total_days
-        })
-        pred = model.predict(pd.DataFrame([input_data]))[0]
-        maunds = (pred / 40) / 2.47105
-        st.success(f"Yield: {maunds:.2f} maunds/acre")
-        st.markdown("</div>", unsafe_allow_html=True)
+input_data = {}
+for feature in numeric_cols:
+    input_data[feature] = st.number_input(f"{feature.replace('_', ' ').capitalize()}", value=float(round(default_values[feature], 2)))
 
-with col2:
-    with st.container():
-        st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
-        st.subheader("💧 Irrigation Forecast")
-        irrigation_intervals = {
-            'Wheat': 28, 'Sugarcane': 25, 'Maize': 22, 'Cotton': 24, 'Rice': 10
-        }
-        df_int = df.copy()
-        crop_names = label_encoders['crop_type'].inverse_transform(df['crop_type'])
-        df_int['crop_name'] = crop_names
-        df_int['irrigation_interval_days'] = df_int['crop_name'].map(irrigation_intervals)
-        df_int = df_int.dropna(subset=['irrigation_interval_days'])
-        le_crop = LabelEncoder()
-        df_int['crop_encoded'] = le_crop.fit_transform(df_int['crop_name'])
-        X_irrig = df_int[['crop_encoded', 'soil_moisture_%', 'temperature_C', 'rainfall_mm']]
-        y_irrig = df_int['irrigation_interval_days']
-        model_irrig = RandomForestRegressor(n_estimators=100, random_state=42)
-        model_irrig.fit(X_irrig, y_irrig)
-        crop_in = st.selectbox("Crop", le_crop.classes_, key="i_crop")
-        sm = st.slider("Soil Moisture (%)", 0, 100, 35, key="i_sm")
-        temp = st.slider("Temperature (°C)", -10, 50, 30, key="i_temp")
-        rain = st.slider("Rainfall (mm)", 0, 200, 15, key="i_rain")
-        encoded_crop = le_crop.transform([crop_in])[0]
-        X_input = pd.DataFrame([[encoded_crop, sm, temp, rain]], columns=X_irrig.columns)
-        result = model_irrig.predict(X_input)[0]
-        st.info(f"Irrigate every {result:.1f} days")
-        st.markdown("</div>", unsafe_allow_html=True)
+if st.button("Predict Yield"):
+    input_df = pd.DataFrame([input_data])
+    prediction = model.predict(input_df)[0]
+    st.success(f"Predicted Yield: **{prediction:.2f} kg/hectare**")
 
-with col3:
-    with st.container():
-        st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
-        st.subheader("🧪 Pesticide Estimator")
-        pest_df = df[['crop_type', 'fertilizer_type', 'irrigation_type', 'total_days', 'pesticide_usage_ml']].copy()
-        pest_df['pesticide_usage_ml'] = pd.to_numeric(pest_df['pesticide_usage_ml'], errors='coerce') * 20
-        X_p = pest_df.drop(columns='pesticide_usage_ml')
-        y_p = pest_df['pesticide_usage_ml']
-        model_p = RandomForestRegressor(n_estimators=100, random_state=42)
-        model_p.fit(X_p, y_p)
-        crop = st.selectbox("Crop", label_encoders['crop_type'].classes_, key="p_crop")
-        fert = st.selectbox("Fertilizer", label_encoders['fertilizer_type'].classes_, key="p_fert")
-        irri = st.selectbox("Irrigation", label_encoders['irrigation_type'].classes_, key="p_irri")
-        days = st.number_input("Crop Duration (days)", min_value=1, value=90, key="p_days")
-        input_df = pd.DataFrame([{
-            'crop_type': label_encoders['crop_type'].transform([crop])[0],
-            'fertilizer_type': label_encoders['fertilizer_type'].transform([fert])[0],
-            'irrigation_type': label_encoders['irrigation_type'].transform([irri])[0],
-            'total_days': days
-        }])
-        pred_ml = model_p.predict(input_df)[0]
-        st.success(f"Estimated pesticide: {pred_ml:.2f} ml")
-        st.markdown("</div>", unsafe_allow_html=True)
+# ================= Irrigation Interval Predictor ===================
+st.markdown("</div>")
+st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
+st.subheader("💧 Irrigation Interval Estimator")
 
-# Dashboard and ROI can be added similarly after this section
+irrigation_intervals = {
+    'Wheat': 28,
+    'Sugarcane': 25,
+    'Maize': 22,
+    'Cotton': 24,
+    'Rice': 10
+}
+
+crop_options = list(irrigation_intervals.keys())
+crop_choice = st.selectbox("Select Crop Type", crop_options)
+moisture = st.slider("Soil Moisture (%)", 0, 100, 30)
+temp = st.slider("Temperature (°C)", -10, 50, 25)
+rain = st.slider("Rainfall (mm)", 0, 200, 10)
+
+irrigation_df = pd.DataFrame({
+    'crop_type': [crop_choice],
+    'soil_moisture_%': [moisture],
+    'temperature_C': [temp],
+    'rainfall_mm': [rain]
+})
+
+if st.button("Estimate Irrigation Interval"):
+    base_interval = irrigation_intervals[crop_choice]
+    adj = base_interval - (moisture / 10) + (rain / 50) - (temp / 20)
+    st.info(f"Recommended Irrigation Interval: **{max(3, round(adj,1))} days**")
+
+# ================= ROI Calculator ===================
+st.markdown("</div>")
+st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
+st.subheader("💰 ROI & Cost Saving Calculator")
+
+cost_fert = st.number_input("Cost of Fertilizer per kg", value=300.0)
+cost_pest = st.number_input("Cost of Pesticide per kg", value=500.0)
+cost_irrig = st.number_input("Irrigation Cost per Event", value=1000.0)
+market_price = st.number_input("Market Price of Yield per kg", value=100.0)
+
+avg_yield = df['yield_kg_per_hectare'].mean()
+total_fert = df['fertilizer_usage_kg'].mean()
+total_pest = df['pesticide_usage_kg'].mean()
+total_irrig = 5  # assuming 5 irrigation events
+
+total_input_cost = total_fert * cost_fert + total_pest * cost_pest + total_irrig * cost_irrig
+income = avg_yield * market_price
+profit = income - total_input_cost
+
+st.metric("📈 Net Profit per Hectare", f"Rs. {profit:,.0f}")
+st.metric("📊 Cost Efficiency", f"{(income / total_input_cost):.2f}x")
+
+# ================= ROI & Dashboard Section ===================
+st.markdown("</div>")
+st.markdown("<div class='custom-section'>", unsafe_allow_html=True)
+st.subheader("📊 ROI & Monitoring Dashboard")
+
+# 1. Average Soil Moisture by Day
+daily_soil = df.groupby('Date')['soil_moisture_%'].mean().reset_index()
+st.pyplot(sns.barplot(data=daily_soil, x='Date', y='soil_moisture_%', color='skyblue').figure)
+
+# 2. Average Crop Yield by Day
+daily_yield = df.groupby('Date')['yield_kg_per_hectare'].mean().reset_index()
+st.pyplot(sns.barplot(data=daily_yield, x='Date', y='yield_kg_per_hectare', color='seagreen').figure)
+
+# 3. Fertilizer Usage Boxplot
+st.pyplot(sns.boxplot(y=df['fertilizer_usage_kg'], color='orange').figure)
+
+# 4. Total Pesticide Usage
+total_pest = df['pesticide_usage_kg'].sum()
+fig4, ax4 = plt.subplots()
+ax4.bar(['Pesticide Usage'], [total_pest], color='brown')
+ax4.set_title('Total Pesticide Used in Season')
+st.pyplot(fig4)
+
+# 5. Pest Infestation Risk Pie Chart
+risk_bins = pd.cut(df['pest_infestation_risk_%'], bins=[0, 30, 70, 100], labels=['Low', 'Medium', 'High'])
+risk_counts = risk_bins.value_counts()
+fig5, ax5 = plt.subplots()
+risk_counts.plot(kind='pie', autopct='%1.1f%%', colors=['lightgreen', 'gold', 'red'], ax=ax5)
+ax5.set_ylabel('')
+ax5.set_title('Pest Infestation Risk Levels')
+st.pyplot(fig5)
+
+# 6. Rainfall by Day
+daily_rain = df.groupby('Date')['rainfall_mm'].mean().reset_index()
+st.pyplot(sns.barplot(data=daily_rain, x='Date', y='rainfall_mm', color='dodgerblue').figure)
+
+# 7. Soil Health Index Categories
+
+def soil_category(val):
+    if val >= 70: return 'Good'
+    elif val >= 40: return 'Moderate'
+    else: return 'Poor'
+
+if 'soil_health_index' in df.columns:
+    df['Soil Health Level'] = df['soil_health_index'].apply(soil_category)
+    health_counts = df['Soil Health Level'].value_counts()
+    st.pyplot(sns.barplot(x=health_counts.index, y=health_counts.values, palette='Set2').figure)
+
+# 8. Irrigation Efficiency Histogram
+if 'irrigation_efficiency_%' in df.columns:
+    st.pyplot(sns.histplot(df['irrigation_efficiency_%'], bins=10, color='cornflowerblue').figure)
+
+# 9. System Uptime Boxplot
+if 'system_uptime_%' in df.columns:
+    st.pyplot(sns.boxplot(y=df['system_uptime_%'], color='lightcoral').figure)
+
+# 10. Daily Avg Temperature
+if 'soil_temperature_°c' in df.columns:
+    daily_temp = df.groupby('Date')['soil_temperature_°c'].mean().reset_index()
+    fig10 = px.line(daily_temp, x='Date', y='soil_temperature_°c', title='Average Soil Temperature per Day')
+    st.plotly_chart(fig10)
+
+st.markdown("</div>", unsafe_allow_html=True)
