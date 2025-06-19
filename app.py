@@ -12,12 +12,11 @@ import plotly.express as px
 # --- Set page configuration ---
 st.set_page_config(page_title="CropIQ – Intelligent Crop Yield Optimizer", layout="wide")
 
-# --- Inject CSS for background image ---
 st.markdown(
     """
     <style>
-    .stApp {
-        background: url("background.jpg");
+    .main {
+        background-image: url("background.jpg");
         background-size: cover;
         background-repeat: no-repeat;
         background-attachment: fixed;
