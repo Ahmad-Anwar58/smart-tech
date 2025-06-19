@@ -12,7 +12,7 @@ from datetime import datetime
 @st.cache_data
 
 def load_data():
-    df = pd.read_csv("Smart_Farming_Crop_Yield_2024.csv")
+    df = pd.read_csv("Data.csv")
     df['sowing_date'] = pd.to_datetime(df['sowing_date'])
     df['harvest_date'] = pd.to_datetime(df['harvest_date'])
     df['timestamp'] = pd.to_datetime(df['timestamp'])
