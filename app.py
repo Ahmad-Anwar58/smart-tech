@@ -43,7 +43,7 @@ section = st.sidebar.radio("📂 Choose Module", [
 ])
 
 # Shared model data
-default_values = df.drop(columns=['yield_kg_per_hectare']).mean().to_dict()
+default_values = df.drop(columns=['yield_kg_per_hectare']).select_dtypes(include=[np.number]).mean().to_dict()
 X = df.drop(columns=['yield_kg_per_hectare'])
 y = df['yield_kg_per_hectare']
 model = RandomForestRegressor(n_estimators=100, random_state=42)
